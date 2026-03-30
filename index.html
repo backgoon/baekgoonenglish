@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>영어 사전</title>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
     <style>
         :root { --primary: #4a90e2; --secondary: #f39c12; --bg: #f5f7fa; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
         h2 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 1.5rem; }
         
-        .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 10px; }
         input { flex: 1; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; outline: none; }
-        button { padding: 0 20px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        .btn-main { padding: 0 15px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        
+        /* 카메라 버튼 스타일 */
+        .camera-label { display: flex; align-items: center; justify-content: center; background: #eef5ff; color: var(--primary); padding: 10px; border-radius: 12px; cursor: pointer; font-size: 14px; margin-bottom: 20px; border: 1px dashed var(--primary); }
+        #cameraInput { display: none; }
 
         #result { margin-top: 10px; display: none; }
         .word-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #f9f9f9; padding-bottom: 10px; }
@@ -27,6 +32,9 @@
         .history { width: 100%; max-width: 500px; margin-top: 25px; }
         .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
         .history-item { background: white; padding: 8px 15px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid #eee; }
+        
+        /* 로딩 표시 */
+        #loading { display: none; text-align: center; font-size: 14px; color: var(--primary); margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -35,8 +43,15 @@
     <h2>📖 영어 사전</h2>
     <div class="search-box">
         <input type="text" id="wordInput" placeholder="단어를 입력하세요" onkeypress="if(event.keyCode==13) searchWord()">
-        <button onclick="searchWord()">검색</button>
+        <button class="btn-main" onclick="searchWord()">검색</button>
     </div>
+
+    <label for="cameraInput" class="camera-label">
+        📷 사진 찍어서 단어 찾기
+    </label>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="recognizeText(this)">
+
+    <div id="loading">이미지 분석 중... 잠시만 기다려주세요.</div>
 
     <div id="result">
         <div class="word-header">
@@ -66,6 +81,32 @@
 <script>
     let currentAudio = null;
 
+    // 이미지에서 텍스트 추출하는 함수
+    async function recognizeText(input) {
+        if (!input.files || !input.files[0]) return;
+        
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+        
+        try {
+            const result = await Tesseract.recognize(input.files[0], 'eng');
+            // 가장 첫 번째로 인식된 단어만 추출 (공백 기준)
+            const detectedWord = result.data.text.trim().split(/\s+/)[0];
+            
+            if (detectedWord) {
+                document.getElementById('wordInput').value = detectedWord;
+                searchWord(detectedWord);
+            } else {
+                alert("단어를 인식하지 못했습니다.");
+            }
+        } catch (err) {
+            alert("이미지 분석 중 오류가 발생했습니다.");
+        } finally {
+            loading.style.display = 'none';
+            input.value = ""; // 파일 선택 초기화
+        }
+    }
+
     async function searchWord(word) {
         const query = word || document.getElementById('wordInput').value.trim();
         if (!query) return;
@@ -77,7 +118,6 @@
             const entry = data[0];
             const definition = entry.meanings[0].definitions[0];
 
-            // 데이터 출력 (변수명 유지)
             document.getElementById('resWord').innerText = entry.word;
             document.getElementById('resPhonetic').innerText = entry.phonetic || '';
             document.getElementById('resMeaningEn').innerText = definition.definition;
@@ -89,7 +129,6 @@
                 document.getElementById('exampleSection').style.display = 'none';
             }
 
-            // 한글 뜻 가져오기
             translateToKr(query);
 
             const audioObj = entry.phonetics.find(p => p.audio !== "");
