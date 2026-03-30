@@ -9,49 +9,55 @@
         :root { --primary: #4a90e2; --secondary: #f39c12; --bg: #f5f7fa; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 1.5rem; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
         
-        .search-box { display: flex; gap: 8px; margin-bottom: 10px; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 15px; }
         input { flex: 1; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-main { padding: 0 15px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
-        
-        /* 카메라 버튼 스타일 */
-        .camera-label { display: flex; align-items: center; justify-content: center; background: #eef5ff; color: var(--primary); padding: 10px; border-radius: 12px; cursor: pointer; font-size: 14px; margin-bottom: 20px; border: 1px dashed var(--primary); }
-        #cameraInput { display: none; }
 
-        #result { margin-top: 10px; display: none; }
-        .word-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #f9f9f9; padding-bottom: 10px; }
-        .word-title { font-size: 28px; font-weight: bold; color: #222; }
+        /* 실시간 카메라 모듈 영역 */
+        #camera-container { width: 100%; position: relative; display: none; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: #000; }
+        #video { width: 100%; display: block; }
+        .scan-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 40px; border: 2px solid var(--secondary); box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; }
+        
+        .action-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-sub { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+        #result { display: none; padding-top: 15px; border-top: 2px solid #f9f9f9; }
+        .word-header { display: flex; align-items: center; justify-content: space-between; }
+        .word-title { font-size: 28px; font-weight: bold; }
         .audio-btn { font-size: 24px; cursor: pointer; background: none; border: none; color: var(--primary); }
+        #resMeaningKr { font-size: 18px; font-weight: bold; background: #fff9e6; padding: 8px 12px; border-radius: 8px; margin: 10px 0; border-left: 4px solid var(--secondary); }
+        .example-box { background: #f8f9fa; padding: 12px; border-radius: 10px; border-left: 4px solid #ddd; font-style: italic; font-size: 14px; }
 
-        .section-label { font-size: 13px; color: var(--secondary); font-weight: bold; margin-top: 15px; display: block; }
-        #resMeaningKr { font-size: 18px; font-weight: bold; color: #333; background: #fff9e6; padding: 8px 12px; border-radius: 8px; margin-top: 5px; border-left: 4px solid var(--secondary); }
-        #resMeaningEn { color: #666; font-size: 15px; line-height: 1.4; margin-top: 8px; }
-        .example-box { background: #f8f9fa; padding: 12px; border-radius: 10px; border-left: 4px solid #ddd; font-style: italic; color: #444; font-size: 14px; margin-top: 5px; }
-
-        .history { width: 100%; max-width: 500px; margin-top: 25px; }
-        .history-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .history-item { background: white; padding: 8px 15px; border-radius: 20px; font-size: 14px; cursor: pointer; border: 1px solid #eee; }
-        
-        /* 로딩 표시 */
-        #loading { display: none; text-align: center; font-size: 14px; color: var(--primary); margin-bottom: 10px; }
+        .history-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .history-item { background: white; padding: 8px 15px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid #eee; }
+        #loading { display: none; text-align: center; font-size: 14px; color: var(--primary); margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>📖 영어 사전</h2>
+    
     <div class="search-box">
-        <input type="text" id="wordInput" placeholder="단어를 입력하세요" onkeypress="if(event.keyCode==13) searchWord()">
+        <input type="text" id="wordInput" placeholder="단어 입력..." onkeypress="if(event.keyCode==13) searchWord()">
         <button class="btn-main" onclick="searchWord()">검색</button>
     </div>
 
-    <label for="cameraInput" class="camera-label">
-        📷 사진 찍어서 단어 찾기
-    </label>
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="recognizeText(this)">
+    <div class="action-buttons">
+        <button class="btn-sub" onclick="toggleScanner()">📷 실시간 스캔</button>
+        <button class="btn-sub" onclick="document.getElementById('fileInput').click()">🖼️ 사진 불러오기</button>
+    </div>
+    <input type="file" id="fileInput" hidden accept="image/*" onchange="recognizeImage(this.files[0])">
 
-    <div id="loading">이미지 분석 중... 잠시만 기다려주세요.</div>
+    <div id="camera-container">
+        <video id="video" autoplay playsinline></video>
+        <div class="scan-overlay"></div>
+        <button onclick="captureFromVideo()" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); padding:10px 20px; border-radius:20px; border:none; background:var(--secondary); color:white; font-weight:bold;">지금 인식</button>
+    </div>
+
+    <div id="loading">분석 중...</div>
 
     <div id="result">
         <div class="word-header">
@@ -61,52 +67,86 @@
             </div>
             <button class="audio-btn" id="audioBtn" onclick="playAudio()">🔊</button>
         </div>
-
-        <span class="section-label">뜻 (Meaning)</span>
         <div id="resMeaningKr"></div>
-        <div id="resMeaningEn"></div>
-
+        <div id="resMeaningEn" style="color:#666; margin-bottom:10px;"></div>
         <div id="exampleSection">
-            <span class="section-label">예문 (Example)</span>
             <div id="resExample" class="example-box"></div>
         </div>
     </div>
 </div>
 
-<div class="history">
+<div style="width:100%; max-width:500px; margin-top:20px;">
     <h3 style="font-size:14px; color:#888;">최근 찾은 단어</h3>
     <div id="historyList" class="history-list"></div>
 </div>
 
 <script>
     let currentAudio = null;
+    let stream = null;
 
-    // 이미지에서 텍스트 추출하는 함수
-    async function recognizeText(input) {
-        if (!input.files || !input.files[0]) return;
+    // 1. 실시간 스캐너 토글 (카메라 모듈)
+    async function toggleScanner() {
+        const container = document.getElementById('camera-container');
+        const video = document.getElementById('video');
         
+        if (container.style.display === 'block') {
+            stopCamera();
+            container.style.display = 'none';
+        } else {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                container.style.display = 'block';
+            } catch (err) {
+                alert("카메라를 켤 수 없습니다. 권한을 확인해주세요.");
+            }
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+    }
+
+    // 2. 비디오 화면 캡처 후 인식
+    function captureFromVideo() {
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        canvas.toBlob(blob => {
+            recognizeImage(blob);
+            toggleScanner(); // 인식 후 카메라 끄기
+        });
+    }
+
+    // 3. 이미지 인식 공통 함수 (파일/캡처)
+    async function recognizeImage(imageSource) {
+        if (!imageSource) return;
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
         
         try {
-            const result = await Tesseract.recognize(input.files[0], 'eng');
-            // 가장 첫 번째로 인식된 단어만 추출 (공백 기준)
-            const detectedWord = result.data.text.trim().split(/\s+/)[0];
+            const result = await Tesseract.recognize(imageSource, 'eng');
+            const detectedWord = result.data.text.trim().match(/[a-zA-Z]+/); // 영문 단어만 추출
             
             if (detectedWord) {
-                document.getElementById('wordInput').value = detectedWord;
-                searchWord(detectedWord);
+                searchWord(detectedWord[0]);
             } else {
-                alert("단어를 인식하지 못했습니다.");
+                alert("영어 단어를 찾지 못했습니다.");
             }
         } catch (err) {
-            alert("이미지 분석 중 오류가 발생했습니다.");
+            alert("인식 오류가 발생했습니다.");
         } finally {
             loading.style.display = 'none';
-            input.value = ""; // 파일 선택 초기화
         }
     }
 
+    // 4. 단어 검색 (기존 로직 유지)
     async function searchWord(word) {
         const query = word || document.getElementById('wordInput').value.trim();
         if (!query) return;
@@ -123,8 +163,8 @@
             document.getElementById('resMeaningEn').innerText = definition.definition;
             
             if (definition.example) {
-                document.getElementById('exampleSection').style.display = 'block';
                 document.getElementById('resExample').innerText = `"${definition.example}"`;
+                document.getElementById('exampleSection').style.display = 'block';
             } else {
                 document.getElementById('exampleSection').style.display = 'none';
             }
@@ -161,7 +201,7 @@
         let history = JSON.parse(localStorage.getItem('wordHistory') || '[]');
         if (!history.includes(word)) {
             history.unshift(word);
-            history = history.slice(0, 12);
+            history = history.slice(0, 10);
             localStorage.setItem('wordHistory', JSON.stringify(history));
             displayHistory();
         }
