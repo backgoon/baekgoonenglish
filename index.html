@@ -111,18 +111,33 @@
     }
 
     // 2. 비디오 화면 캡처 후 인식
-    function captureFromVideo() {
-        const video = document.getElementById('video');
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        canvas.toBlob(blob => {
-            recognizeImage(blob);
-            toggleScanner(); // 인식 후 카메라 끄기
-        });
-    }
+function captureFromVideo() {
+    const video = document.getElementById('video');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 가이드 박스 영역 계산 (중앙 70% 가로, 40px 세로 영역)
+    const scale = video.videoWidth / video.clientWidth;
+    const boxW = (video.clientWidth * 0.7) * scale;
+    const boxH = 60 * scale; // 높이를 약간 키웠습니다.
+    const startX = (video.videoWidth - boxW) / 2;
+    const startY = (video.videoHeight - boxH) / 2;
+
+    canvas.width = boxW;
+    canvas.height = boxH;
+
+    // 가이드 박스 안의 이미지만 캔버스에 그리기
+    ctx.drawImage(video, startX, startY, boxW, boxH, 0, 0, boxW, boxH);
+    
+    // 이미지 선명도 보정 (흑백 대비 강화)
+    ctx.filter = 'contrast(150%) brightness(110%) grayscale(100%)';
+    ctx.drawImage(canvas, 0, 0);
+
+    canvas.toBlob(blob => {
+        recognizeImage(blob);
+        toggleScanner(); 
+    }, 'image/jpeg', 0.9);
+}
 
     // 3. 이미지 인식 공통 함수 (파일/캡처)
 // 3. 이미지 인식 공통 함수 (인식률 강화 버전)
@@ -132,12 +147,12 @@ async function recognizeImage(imageSource) {
     loading.style.display = 'block';
     
     try {
-        // Tesseract 설정: 영어만 인식하도록 최적화
         const worker = Tesseract.createWorker();
         await worker.load();
         await worker.loadLanguage('eng');
         await worker.initialize('eng');
-        // 영어 알파벳만 인식하도록 제한 (인식률 대폭 상승)
+        
+        // 알파벳만 인식하도록 화이트리스트 설정
         await worker.setParameters({
             tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
         });
@@ -145,20 +160,19 @@ async function recognizeImage(imageSource) {
         const { data: { text } } = await worker.recognize(imageSource);
         await worker.terminate();
 
-        // 인식된 텍스트에서 2글자 이상의 실제 단어 형태만 추출
-        const words = text.match(/\b[a-zA-Z]{2,}\b/g);
+        // 3글자 이상의 단어만 추출
+        const words = text.match(/[a-zA-Z]{3,}/g);
         
         if (words && words.length > 0) {
-            // 가장 먼저 발견된 유효한 단어를 선택
-            const targetWord = words[0];
+            // 가장 긴 단어나 첫 번째 단어 선택
+            const targetWord = words[0]; 
             document.getElementById('wordInput').value = targetWord;
             searchWord(targetWord);
         } else {
-            alert("단어를 명확히 인식하지 못했습니다. 조금 더 가까이서 찍어주세요!");
+            alert("단어를 찾지 못했습니다. 글자를 가이드 박스 중앙에 맞춰주세요!");
         }
     } catch (err) {
-        console.error(err);
-        alert("분석 중 오류가 발생했습니다.");
+        alert("분석 오류가 발생했습니다.");
     } finally {
         loading.style.display = 'none';
     }
