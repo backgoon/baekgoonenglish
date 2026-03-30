@@ -125,26 +125,44 @@
     }
 
     // 3. 이미지 인식 공통 함수 (파일/캡처)
-    async function recognizeImage(imageSource) {
-        if (!imageSource) return;
-        const loading = document.getElementById('loading');
-        loading.style.display = 'block';
+// 3. 이미지 인식 공통 함수 (인식률 강화 버전)
+async function recognizeImage(imageSource) {
+    if (!imageSource) return;
+    const loading = document.getElementById('loading');
+    loading.style.display = 'block';
+    
+    try {
+        // Tesseract 설정: 영어만 인식하도록 최적화
+        const worker = Tesseract.createWorker();
+        await worker.load();
+        await worker.loadLanguage('eng');
+        await worker.initialize('eng');
+        // 영어 알파벳만 인식하도록 제한 (인식률 대폭 상승)
+        await worker.setParameters({
+            tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        });
+
+        const { data: { text } } = await worker.recognize(imageSource);
+        await worker.terminate();
+
+        // 인식된 텍스트에서 2글자 이상의 실제 단어 형태만 추출
+        const words = text.match(/\b[a-zA-Z]{2,}\b/g);
         
-        try {
-            const result = await Tesseract.recognize(imageSource, 'eng');
-            const detectedWord = result.data.text.trim().match(/[a-zA-Z]+/); // 영문 단어만 추출
-            
-            if (detectedWord) {
-                searchWord(detectedWord[0]);
-            } else {
-                alert("영어 단어를 찾지 못했습니다.");
-            }
-        } catch (err) {
-            alert("인식 오류가 발생했습니다.");
-        } finally {
-            loading.style.display = 'none';
+        if (words && words.length > 0) {
+            // 가장 먼저 발견된 유효한 단어를 선택
+            const targetWord = words[0];
+            document.getElementById('wordInput').value = targetWord;
+            searchWord(targetWord);
+        } else {
+            alert("단어를 명확히 인식하지 못했습니다. 조금 더 가까이서 찍어주세요!");
         }
+    } catch (err) {
+        console.error(err);
+        alert("분석 중 오류가 발생했습니다.");
+    } finally {
+        loading.style.display = 'none';
     }
+}
 
     // 4. 단어 검색 (기존 로직 유지)
     async function searchWord(word) {
