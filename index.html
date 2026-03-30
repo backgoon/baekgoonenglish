@@ -15,24 +15,30 @@
         input { flex: 1; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-main { padding: 0 15px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
 
-        /* 실시간 카메라 모듈 영역 */
+        /* 카메라 영역 */
         #camera-container { width: 100%; position: relative; display: none; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: #000; }
         #video { width: 100%; display: block; }
-        .scan-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70%; height: 40px; border: 2px solid var(--secondary); box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; }
+        .scan-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 60px; border: 2px solid var(--secondary); box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); pointer-events: none; }
         
-        .action-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-sub { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .action-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-sub { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 14px; }
 
-        #result { display: none; padding-top: 15px; border-top: 2px solid #f9f9f9; }
-        .word-header { display: flex; align-items: center; justify-content: space-between; }
-        .word-title { font-size: 28px; font-weight: bold; }
-        .audio-btn { font-size: 24px; cursor: pointer; background: none; border: none; color: var(--primary); }
-        #resMeaningKr { font-size: 18px; font-weight: bold; background: #fff9e6; padding: 8px 12px; border-radius: 8px; margin: 10px 0; border-left: 4px solid var(--secondary); }
-        .example-box { background: #f8f9fa; padding: 12px; border-radius: 10px; border-left: 4px solid #ddd; font-style: italic; font-size: 14px; }
+        /* 실시간 발견 단어 표시 */
+        #loading { display: none; background: #fff9e6; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; border: 1px solid var(--secondary); }
+        .word-chip { background: var(--secondary); color: white; padding: 5px 10px; border-radius: 15px; margin: 3px; display: inline-block; cursor: pointer; font-size: 14px; font-weight: bold; }
+
+        /* 결과창 */
+        #result { display: none; width: 100%; }
+        .word-card { border-bottom: 1px solid #eee; padding: 15px 0; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .word-title { font-size: 24px; font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .audio-btn { font-size: 20px; cursor: pointer; background: none; border: none; color: #aaa; }
+        .meaning-kr { font-size: 18px; font-weight: bold; color: #333; margin: 8px 0; }
+        .meaning-en { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .example-box { background: #f8f9fa; padding: 10px; border-radius: 8px; font-style: italic; font-size: 13px; color: #555; border-left: 3px solid #ddd; }
 
         .history-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .history-item { background: white; padding: 8px 15px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid #eee; }
-        #loading { display: none; text-align: center; font-size: 14px; color: var(--primary); margin: 10px 0; }
+        .history-item { background: white; padding: 6px 12px; border-radius: 15px; font-size: 13px; cursor: pointer; border: 1px solid #eee; }
     </style>
 </head>
 <body>
@@ -41,12 +47,12 @@
     <h2>📖 영어 사전</h2>
     
     <div class="search-box">
-        <input type="text" id="wordInput" placeholder="단어 입력..." onkeypress="if(event.keyCode==13) searchWord()">
+        <input type="text" id="wordInput" placeholder="단어 직접 입력..." onkeypress="if(event.keyCode==13) searchWord()">
         <button class="btn-main" onclick="searchWord()">검색</button>
     </div>
 
     <div class="action-buttons">
-        <button class="btn-sub" onclick="toggleScanner()">📷 실시간 스캔</button>
+        <button class="btn-sub" onclick="toggleScanner()">📷 실시간 스캔 ON/OFF</button>
         <button class="btn-sub" onclick="document.getElementById('fileInput').click()">🖼️ 사진 불러오기</button>
     </div>
     <input type="file" id="fileInput" hidden accept="image/*" onchange="recognizeImage(this.files[0])">
@@ -54,215 +60,142 @@
     <div id="camera-container">
         <video id="video" autoplay playsinline></video>
         <div class="scan-overlay"></div>
-        <button onclick="captureFromVideo()" style="position:absolute; bottom:10px; left:50%; transform:translateX(-50%); padding:10px 20px; border-radius:20px; border:none; background:var(--secondary); color:white; font-weight:bold;">지금 인식</button>
     </div>
 
-    <div id="loading">분석 중...</div>
+    <div id="loading">단어를 찾는 중...</div>
 
-    <div id="result">
-        <div class="word-header">
-            <div>
-                <span class="word-title" id="resWord"></span>
-                <p id="resPhonetic" style="margin: 0; color:#aaa; font-size: 14px;"></p>
-            </div>
-            <button class="audio-btn" id="audioBtn" onclick="playAudio()">🔊</button>
-        </div>
-        <div id="resMeaningKr"></div>
-        <div id="resMeaningEn" style="color:#666; margin-bottom:10px;"></div>
-        <div id="exampleSection">
-            <div id="resExample" class="example-box"></div>
-        </div>
-    </div>
+    <div id="result"></div>
 </div>
 
 <div style="width:100%; max-width:500px; margin-top:20px;">
-    <h3 style="font-size:14px; color:#888;">최근 찾은 단어</h3>
+    <h3 style="font-size:14px; color:#888; padding-left:5px;">최근 찾은 단어</h3>
     <div id="historyList" class="history-list"></div>
 </div>
 
 <script>
-    let currentAudio = null;
+    let currentAudio = {};
     let stream = null;
+    let scanInterval = null;
 
-    // 1. 실시간 스캐너 토글 (카메라 모듈)
+    // 1. 카메라 토글 및 자동 스캔 시작
     async function toggleScanner() {
         const container = document.getElementById('camera-container');
         const video = document.getElementById('video');
         
         if (container.style.display === 'block') {
-            stopCamera();
+            if(stream) stream.getTracks().forEach(t => t.stop());
+            clearInterval(scanInterval);
             container.style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
         } else {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 video.srcObject = stream;
                 container.style.display = 'block';
+                document.getElementById('loading').style.display = 'block';
+                // 1초마다 자동 캡처 및 분석
+                scanInterval = setInterval(autoCapture, 1000);
             } catch (err) {
-                alert("카메라를 켤 수 없습니다. 권한을 확인해주세요.");
+                alert("카메라 권한이 필요합니다.");
             }
         }
     }
 
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
+    // 2. 실시간 화면 캡처
+    function autoCapture() {
+        const video = document.getElementById('video');
+        if (video.paused || video.ended) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const scale = video.videoWidth / video.clientWidth;
+        const boxW = (video.clientWidth * 0.8) * scale;
+        const boxH = 60 * scale;
+        const startX = (video.videoWidth - boxW) / 2;
+        const startY = (video.videoHeight - boxH) / 2;
+
+        canvas.width = boxW; canvas.height = boxH;
+        ctx.filter = 'contrast(160%) grayscale(100%)';
+        ctx.drawImage(video, startX, startY, boxW, boxH, 0, 0, boxW, boxH);
+
+        canvas.toBlob(blob => recognizeImage(blob, true), 'image/jpeg', 0.7);
     }
 
-    // 2. 비디오 화면 캡처 후 인식
-function captureFromVideo() {
-    const video = document.getElementById('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    const scale = video.videoWidth / video.clientWidth;
-    const boxW = (video.clientWidth * 0.8) * scale; // 영역을 조금 더 넓혔습니다.
-    const boxH = 80 * scale; 
-    const startX = (video.videoWidth - boxW) / 2;
-    const startY = (video.videoHeight - boxH) / 2;
-
-    canvas.width = boxW;
-    canvas.height = boxH;
-
-    // 이미지 선명도 보정 (흑백 대비 강화하여 인식률 상승)
-    ctx.filter = 'contrast(160%) brightness(110%) grayscale(100%)';
-    ctx.drawImage(video, startX, startY, boxW, boxH, 0, 0, boxW, boxH);
-
-    canvas.toBlob(blob => {
-        recognizeImage(blob);
-        toggleScanner(); 
-    }, 'image/jpeg', 0.9);
-}
-
-    // 3. 이미지 인식 공통 함수 (파일/캡처)
-// 3. 이미지 인식 공통 함수 (인식률 강화 버전)
-async function recognizeImage(imageSource) {
-    if (!imageSource) return;
-    const loading = document.getElementById('loading');
-    const resultDiv = document.getElementById('result');
-    loading.style.display = 'block';
-    resultDiv.innerHTML = ""; // 이전 결과 초기화
-    
-    try {
-        const worker = Tesseract.createWorker();
-        await worker.load();
-        await worker.loadLanguage('eng');
-        await worker.initialize('eng');
-        
-        // [중요] 한글 인식 방지: 영어 알파벳과 기본 문장 부호만 허용
-        await worker.setParameters({
-            tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
-        });
-
-        const { data: { text } } = await worker.recognize(imageSource);
-        await worker.terminate();
-
-        // 텍스트에서 2글자 이상의 영어 단어들을 모두 추출 (배열로 반환)
-        const words = text.match(/[a-zA-Z]{2,}/g);
-        
-        if (words && words.length > 0) {
-            // 중복 제거 후 최대 5개 정도 단어 처리
-            const uniqueWords = [...new Set(words)].slice(0, 5);
+    // 3. 이미지 인식 (파일 업로드 & 실시간 공통)
+    async function recognizeImage(source, isLive = false) {
+        try {
+            const worker = Tesseract.createWorker();
+            await worker.load();
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            await worker.setParameters({ tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ' });
             
-            resultDiv.style.display = 'block';
-            
-            // 찾아낸 모든 단어를 순회하며 해석 레이아웃 생성
-            for (const word of uniqueWords) {
-                const wordCard = document.createElement('div');
-                wordCard.style.marginBottom = "20px";
-                wordCard.style.paddingBottom = "15px";
-                wordCard.style.borderBottom = "1px solid #eee";
-                wordCard.innerHTML = `
-                    <div style="font-size:22px; font-weight:bold; color:var(--primary);">${word}</div>
-                    <div id="kr_${word}" style="font-size:16px; font-weight:bold; color:#333; margin:5px 0;">뜻 가져오는 중...</div>
-                    <div id="en_${word}" style="font-size:14px; color:#666;"></div>
-                `;
-                resultDiv.appendChild(wordCard);
-                
-                // 각 단어별 개별 해석 호출
-                fetchDetail(word);
+            const { data: { text } } = await worker.recognize(source);
+            await worker.terminate();
+
+            const words = text.match(/[a-zA-Z]{3,}/g);
+            if (words) {
+                const uniqueWords = [...new Set(words)].slice(0, 3);
+                if (isLive) {
+                    // 라이브 모드: 상단에 추천 칩 표시
+                    document.getElementById('loading').innerHTML = `⭐ 발견된 단어: ` + 
+                        uniqueWords.map(w => `<span class="word-chip" onclick="searchWord('${w}')">${w}</span>`).join('');
+                } else {
+                    // 파일 업로드 모드: 바로 검색 실행
+                    uniqueWords.forEach(w => searchWord(w));
+                }
             }
-        } else {
-            alert("영어 단어를 명확히 찾지 못했습니다. 가이드 박스 안에 단어가 잘 들어오게 해주세요!");
-        }
-    } catch (err) {
-        alert("분석 중 오류가 발생했습니다.");
-    } finally {
-        loading.style.display = 'none';
+        } catch (e) { console.error(e); }
     }
-}
 
-    async function fetchDetail(word) {
-    try {
-        // 1. 영어 사전 API
-        const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        if (dictRes.ok) {
-            const data = await dictRes.json();
-            document.getElementById(`en_${word}`).innerText = data[0].meanings[0].definitions[0].definition;
-        }
-        
-        // 2. 한글 번역 API
-        const transRes = await fetch(`https://api.mymemory.translated.net/get?q=${word}&langpair=en|ko`);
-        const transData = await transRes.json();
-        document.getElementById(`kr_${word}`).innerText = transData.responseData.translatedText;
-        
-        saveHistory(word); // 단어장에 저장
-    } catch (e) {
-        document.getElementById(`kr_${word}`).innerText = "해석 불가";
-    }
-}
-    
-    // 4. 단어 검색 (기존 로직 유지)
+    // 4. 단어 검색 및 카드 생성
     async function searchWord(word) {
         const query = word || document.getElementById('wordInput').value.trim();
         if (!query) return;
 
+        const resultArea = document.getElementById('result');
+        resultArea.style.display = 'block';
+
+        // 이미 결과에 있는 단어면 패스
+        if (document.getElementById(`card_${query}`)) return;
+
+        const card = document.createElement('div');
+        card.id = `card_${query}`;
+        card.className = 'word-card';
+        card.innerHTML = `
+            <div class="word-title">${query} <button class="audio-btn" onclick="playAudio('${query}')">🔊</button></div>
+            <div id="kr_${query}" class="meaning-kr">뜻 찾는 중...</div>
+            <div id="en_${query}" class="meaning-en"></div>
+            <div id="ex_${query}" class="example-box" style="display:none;"></div>
+        `;
+        resultArea.prepend(card); // 최신 검색어가 위로
+
         try {
-            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${query}`);
-            if (!response.ok) throw new Error();
-            const data = await response.json();
-            const entry = data[0];
-            const definition = entry.meanings[0].definitions[0];
-
-            document.getElementById('resWord').innerText = entry.word;
-            document.getElementById('resPhonetic').innerText = entry.phonetic || '';
-            document.getElementById('resMeaningEn').innerText = definition.definition;
-            
-            if (definition.example) {
-                document.getElementById('resExample').innerText = `"${definition.example}"`;
-                document.getElementById('exampleSection').style.display = 'block';
-            } else {
-                document.getElementById('exampleSection').style.display = 'none';
+            // 사전 데이터
+            const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${query}`);
+            if (dictRes.ok) {
+                const data = await dictRes.json();
+                const entry = data[0];
+                document.getElementById(`en_${query}`).innerText = entry.meanings[0].definitions[0].definition;
+                if(entry.meanings[0].definitions[0].example) {
+                    const exBox = document.getElementById(`ex_${query}`);
+                    exBox.innerText = `"${entry.meanings[0].definitions[0].example}"`;
+                    exBox.style.display = 'block';
+                }
+                const audio = entry.phonetics.find(p => p.audio !== "");
+                if (audio) currentAudio[query] = new Audio(audio.audio);
             }
-
-            translateToKr(query);
-
-            const audioObj = entry.phonetics.find(p => p.audio !== "");
-            currentAudio = audioObj ? new Audio(audioObj.audio) : null;
-            document.getElementById('audioBtn').style.visibility = currentAudio ? 'visible' : 'hidden';
-
-            document.getElementById('result').style.display = 'block';
-            if (!word) saveHistory(entry.word);
-        } catch (err) {
-            alert("단어를 찾을 수 없습니다.");
-        }
+            // 번역 데이터
+            const transRes = await fetch(`https://api.mymemory.translated.net/get?q=${query}&langpair=en|ko`);
+            const transData = await transRes.json();
+            document.getElementById(`kr_${query}`).innerText = transData.responseData.translatedText;
+            
+            saveHistory(query);
+        } catch (e) { document.getElementById(`kr_${query}`).innerText = "해석 불가"; }
         document.getElementById('wordInput').value = '';
     }
 
-    async function translateToKr(word) {
-        const resMeaningKr = document.getElementById('resMeaningKr');
-        resMeaningKr.innerText = "번역 중...";
-        try {
-            const res = await fetch(`https://api.mymemory.translated.net/get?q=${word}&langpair=en|ko`);
-            const data = await res.json();
-            resMeaningKr.innerText = data.responseData.translatedText;
-        } catch {
-            resMeaningKr.innerText = "뜻을 찾지 못했습니다.";
-        }
-    }
-
-    function playAudio() { if (currentAudio) currentAudio.play(); }
+    function playAudio(word) { if (currentAudio[word]) currentAudio[word].play(); }
 
     function saveHistory(word) {
         let history = JSON.parse(localStorage.getItem('wordHistory') || '[]');
