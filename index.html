@@ -8,33 +8,42 @@
     <style>
         :root { --primary: #4a90e2; --secondary: #f39c12; --bg: #f5f7fa; }
         body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 550px; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        .container { width: 100%; max-width: 550px; background: white; padding: 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 1.6rem; }
         
+        /* 검색창 */
         .search-box { display: flex; gap: 8px; margin-bottom: 15px; }
-        input { flex: 1; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; outline: none; }
-        .btn-main { padding: 0 15px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        input { flex: 1; padding: 14px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--primary); }
+        .btn-main { padding: 0 18px; background: var(--primary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
 
-        /* 카메라 영역 - 가이드 박스를 제거하고 전체를 보여줌 */
-        #camera-container { width: 100%; position: relative; display: none; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: #000; border: 2px solid #ddd; }
-        #video { width: 100%; display: block; }
-        
-        /* 추천 단어 영역 강화 */
-        #loading { display: none; background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; min-height: 50px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
-        .chip-container { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-        .word-chip { background: #eef5ff; color: var(--primary); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #d0e3ff; transition: 0.2s; }
-        .word-chip:active { background: var(--primary); color: white; }
+        /* 카메라 & 정지 화면 영역 */
+        #camera-wrapper { width: 100%; position: relative; margin-bottom: 15px; border-radius: 16px; overflow: hidden; background: #000; border: 1px solid #ddd; aspect-ratio: 4/3; display: none; }
+        #video, #canvas-display { width: 100%; height: 100%; object-fit: cover; }
+        #canvas-display { display: none; position: absolute; top: 0; left: 0; }
 
+        /* 컨트롤 버튼 */
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-scan { flex: 1; height: 50px; background: #333; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .btn-scan.active { background: #e74c3c; }
+
+        /* 단어 추천 칩 영역 */
+        #recommendation-area { display: none; background: #fff9e6; border: 1px solid #ffeaa7; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .chip-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+        .word-chip { background: white; color: var(--primary); border: 1.5px solid var(--primary); padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .word-chip:hover { background: var(--primary); color: white; }
+
+        /* 결과 카드 */
         #result { width: 100%; }
-        .word-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 12px; position: relative; }
-        .word-title { font-size: 22px; font-weight: bold; color: var(--primary); display: flex; align-items: center; gap: 10px; }
-        .audio-btn { font-size: 18px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 50%; width: 30px; height: 30px; }
-        .meaning-kr { font-size: 17px; font-weight: bold; color: #333; margin: 8px 0; border-left: 4px solid var(--secondary); padding-left: 10px; }
-        .meaning-en { font-size: 14px; color: #666; line-height: 1.4; }
-        .example-box { background: #f9f9f9; padding: 10px; border-radius: 8px; font-style: italic; font-size: 13px; color: #555; margin-top: 10px; }
+        .word-card { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .word-title { font-size: 24px; font-weight: 800; color: #222; display: flex; align-items: center; justify-content: space-between; }
+        .audio-btn { font-size: 20px; cursor: pointer; border: none; background: #f0f0f0; border-radius: 50%; width: 36px; height: 36px; color: var(--primary); }
+        .meaning-kr { font-size: 18px; font-weight: 700; color: #333; margin: 10px 0; padding-left: 10px; border-left: 4px solid var(--secondary); }
+        .meaning-en { font-size: 14px; color: #666; line-height: 1.5; margin-bottom: 10px; }
+        .example-box { background: #f8f9fa; padding: 12px; border-radius: 10px; font-style: italic; font-size: 13px; color: #555; border-left: 3px solid #ddd; }
 
         .history-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .history-item { background: white; padding: 6px 12px; border-radius: 15px; font-size: 13px; cursor: pointer; border: 1px solid #eee; }
+        .history-item { background: white; padding: 6px 12px; border-radius: 15px; font-size: 13px; border: 1px solid #eee; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -43,105 +52,132 @@
     <h2>📖 영어 사전</h2>
     
     <div class="search-box">
-        <input type="text" id="wordInput" placeholder="직접 입력..." onkeypress="if(event.keyCode==13) searchWord()">
+        <input type="text" id="wordInput" placeholder="단어를 직접 입력해보세요" onkeypress="if(event.keyCode==13) searchWord()">
         <button class="btn-main" onclick="searchWord()">검색</button>
     </div>
 
-    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <button class="btn-main" style="flex:1; background:#444; height:45px;" onclick="toggleScanner()">📷 실시간 스캔 ON/OFF</button>
-        <button class="btn-main" style="flex:1; background:#eee; color:#444;" onclick="document.getElementById('fileInput').click()">🖼️ 갤러리</button>
+    <div class="controls">
+        <button id="toggleBtn" class="btn-scan" onclick="toggleCamera()">📷 카메라 켜기</button>
+        <button id="captureBtn" class="btn-scan" style="display:none; background: var(--secondary);" onclick="captureAndProcess()">🔍 지금 화면 인식</button>
     </div>
-    <input type="file" id="fileInput" hidden accept="image/*" onchange="recognizeImage(this.files[0])">
 
-    <div id="camera-container">
+    <div id="camera-wrapper">
         <video id="video" autoplay playsinline></video>
+        <canvas id="canvas-display"></canvas>
     </div>
 
-    <div id="loading">
-        <div style="font-size: 12px; color: #999; margin-bottom: 8px; text-align: center;">페이지를 비추면 단어를 추천해드려요!</div>
+    <div id="recommendation-area">
+        <div id="scan-status" style="font-size: 13px; color: #d35400; font-weight: bold;">화면에서 찾은 영어 단어들:</div>
         <div id="chipContainer" class="chip-container"></div>
+        <button onclick="resetCamera()" style="margin-top:15px; border:none; background:none; color:#888; text-decoration:underline; cursor:pointer; font-size:12px;">다시 찍기</button>
     </div>
 
     <div id="result"></div>
 </div>
 
 <div style="width:100%; max-width:550px; margin-top:20px;">
-    <h3 style="font-size:14px; color:#888;">최근 찾은 단어</h3>
+    <h3 style="font-size:14px; color:#888; margin-left:5px;">최근 검색 기록</h3>
     <div id="historyList" class="history-list"></div>
 </div>
 
 <script>
     let currentAudio = {};
     let stream = null;
-    let scanInterval = null;
+    const video = document.getElementById('video');
+    const canvasDisplay = document.getElementById('canvas-display');
+    const ctxDisplay = canvasDisplay.getContext('2d');
 
-    async function toggleScanner() {
-        const container = document.getElementById('camera-container');
-        const video = document.getElementById('video');
-        const loading = document.getElementById('loading');
-        
-        if (container.style.display === 'block') {
-            if(stream) stream.getTracks().forEach(t => t.stop());
-            clearInterval(scanInterval);
-            container.style.display = 'none';
-            loading.style.display = 'none';
+    // 1. 카메라 켜기/끄기
+    async function toggleCamera() {
+        const wrapper = document.getElementById('camera-wrapper');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const captureBtn = document.getElementById('captureBtn');
+
+        if (stream) {
+            stopStream();
+            wrapper.style.display = 'none';
+            captureBtn.style.display = 'none';
+            toggleBtn.innerText = "📷 카메라 켜기";
+            toggleBtn.classList.remove('active');
         } else {
             try {
-                // 고해상도 설정 요청
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
                 });
                 video.srcObject = stream;
-                container.style.display = 'block';
-                loading.style.display = 'block';
-                scanInterval = setInterval(autoCapture, 1500); // 1.5초 간격으로 넉넉하게 스캔
-            } catch (err) { alert("카메라를 켤 수 없습니다."); }
+                wrapper.style.display = 'block';
+                captureBtn.style.display = 'block';
+                canvasDisplay.style.display = 'none';
+                video.style.display = 'block';
+                toggleBtn.innerText = "❌ 카메라 끄기";
+                toggleBtn.classList.add('active');
+            } catch (err) { alert("카메라를 사용할 수 없습니다."); }
         }
     }
 
-    function autoCapture() {
-        const video = document.getElementById('video');
-        if (video.paused || video.ended) return;
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // 전체 화면 스캔
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // 이미지 전처리 (멀리서도 잘 보이게 대비 상승)
-        ctx.filter = 'contrast(180%) brightness(100%) grayscale(100%) sharpness(2)';
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(blob => recognizeImage(blob, true), 'image/jpeg', 0.8);
+    function stopStream() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     }
 
-    async function recognizeImage(source, isLive = false) {
+    // 2. 화면 정지 및 인식 시작
+    async function captureAndProcess() {
+        // 현재 화면을 캔버스에 그려서 정지 화면 효과
+        canvasDisplay.width = video.videoWidth;
+        canvasDisplay.height = video.videoHeight;
+        ctxDisplay.drawImage(video, 0, 0);
+        
+        video.style.display = 'none';
+        canvasDisplay.style.display = 'block';
+        
+        document.getElementById('scan-status').innerText = "단어를 분석하고 있습니다...";
+        document.getElementById('recommendation-area').style.display = 'block';
+        document.getElementById('chipContainer').innerHTML = "";
+
+        // 이미지 분석용 데이터 생성
+        canvasDisplay.toBlob(async (blob) => {
+            await processOCR(blob);
+        }, 'image/jpeg', 0.9);
+    }
+
+    // 3. OCR 분석 로직 (한글 제외, 다중 단어 추출)
+    async function processOCR(blob) {
         try {
             const worker = Tesseract.createWorker();
             await worker.load();
             await worker.loadLanguage('eng');
             await worker.initialize('eng');
+            // 영어만 인식하도록 제한
             await worker.setParameters({ tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' });
             
-            const { data: { text } } = await worker.recognize(source);
+            const { data: { text } } = await worker.recognize(blob);
             await worker.terminate();
 
-            // 4글자 이상의 영어 단어만 추출 (소설의 주요 단어 위주)
+            // 4글자 이상의 단어들 추출
             const words = text.match(/[a-zA-Z]{4,}/g);
             if (words) {
-                const uniqueWords = [...new Set(words)].slice(0, 10); // 최대 10개 추천
-                updateChips(uniqueWords);
+                const uniqueWords = [...new Set(words.map(w => w.toLowerCase()))].slice(0, 12);
+                displayChips(uniqueWords);
+                document.getElementById('scan-status').innerText = "공부할 단어를 선택해보세요:";
+            } else {
+                document.getElementById('scan-status').innerText = "단어를 찾지 못했습니다. 다시 찍어주세요.";
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            document.getElementById('scan-status').innerText = "인식 중 오류가 발생했습니다.";
+        }
     }
 
-    function updateChips(words) {
+    function displayChips(words) {
         const container = document.getElementById('chipContainer');
         container.innerHTML = words.map(w => `<span class="word-chip" onclick="searchWord('${w}')">${w}</span>`).join('');
     }
 
+    function resetCamera() {
+        video.style.display = 'block';
+        canvasDisplay.style.display = 'none';
+        document.getElementById('recommendation-area').style.display = 'none';
+    }
+
+    // 4. 단어 검색 및 카드 생성 (기존 로직 유지)
     async function searchWord(word) {
         const query = (word || document.getElementById('wordInput').value).trim().toLowerCase();
         if (!query) return;
@@ -157,35 +193,32 @@
         card.className = 'word-card';
         card.innerHTML = `
             <div class="word-title">${query} <button class="audio-btn" onclick="playAudio('${query}')">🔊</button></div>
-            <div id="kr_${query}" class="meaning-kr">번역 중...</div>
+            <div id="kr_${query}" class="meaning-kr">해석 중...</div>
             <div id="en_${query}" class="meaning-en"></div>
             <div id="ex_${query}" class="example-box" style="display:none;"></div>
         `;
         resultArea.prepend(card);
 
         try {
-            // 번역 우선 처리
             const transRes = await fetch(`https://api.mymemory.translated.net/get?q=${query}&langpair=en|ko`);
             const transData = await transRes.json();
             document.getElementById(`kr_${query}`).innerText = transData.responseData.translatedText;
 
-            // 사전 정보
             const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${query}`);
             if (dictRes.ok) {
                 const data = await dictRes.json();
-                const entry = data[0];
-                const def = entry.meanings[0].definitions[0];
+                const def = data[0].meanings[0].definitions[0];
                 document.getElementById(`en_${query}`).innerText = def.definition;
                 if(def.example) {
                     const ex = document.getElementById(`ex_${query}`);
                     ex.innerText = `"${def.example}"`;
                     ex.style.display = 'block';
                 }
-                const audio = entry.phonetics.find(p => p.audio !== "");
+                const audio = data[0].phonetics.find(p => p.audio !== "");
                 if (audio) currentAudio[query] = new Audio(audio.audio);
             }
             saveHistory(query);
-        } catch (e) { document.getElementById(`kr_${query}`).innerText = "해석 오류"; }
+        } catch (e) { document.getElementById(`kr_${query}`).innerText = "해석 불가"; }
         document.getElementById('wordInput').value = '';
     }
 
